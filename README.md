@@ -25,7 +25,7 @@ Before running this script for the first time, I STRONGLY RECOMMEND making a bac
 - Run `AddOnsFixer.exe`
 - Check result inplace
 
-#### Manual build
+## Manual build
 
 Build from PowerShell for x86:
 
