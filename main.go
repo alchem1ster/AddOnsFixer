@@ -4,15 +4,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
 	"github.com/yargevad/filepathx" // improved Glob function
 )
 
+var (
+	wg         sync.WaitGroup
+	addonsPath string      = "./Interface/AddOns"
+	jobsPerms  chan string = make(chan string, 256)
+	jobsTocs   chan string = make(chan string, 256)
+)
+
 func main() {
 
-	addonsPath := "./Interface/AddOns"
+	cpuc := runtime.NumCPU()
+	runtime.GOMAXPROCS(cpuc)
 
 	// Check startup from the game folder
 	if _, err := os.Stat(addonsPath); os.IsNotExist(err) {
@@ -24,38 +33,59 @@ func main() {
 	fmt.Println("[?] > Checking AddOns folder..")
 	fixReadOnly(addonsPath)
 
-	// Setting up variables
-	var wg sync.WaitGroup
-	jobs := make(chan string, 5)
-
-	// Launching 5 background goroutines (workers)
-	for i := 0; i <= 4; i++ {
-		wg.Add(1)
-		go processAddOnFolder(jobs, &wg)
-	}
-
-	// Scanning entire AddOns directory one by one and sending broken AddOns to workers
 	dirs, _ := filepathx.Glob(addonsPath + "/*")
 	for _, dir := range dirs {
+		jobsPerms <- dir
 		if !checkForTOCFile(dir) {
-			jobs <- dir
+			jobsTocs <- dir
 		}
 	}
 
-	// Waiting until completion
-	close(jobs)
+	close(jobsPerms)
+	close(jobsTocs)
+
+	for i := 0; i <= min(cpuc-1, len(jobsPerms)); i++ {
+		wg.Add(1)
+		go fixReadOnlyGlob(jobsPerms, &wg)
+	}
+
+	wg.Wait()
+
+	for i := 0; i <= min(cpuc-1, len(jobsTocs)); i++ {
+		wg.Add(1)
+		go processAddOnFolder(jobsTocs, &wg)
+	}
+
 	wg.Wait()
 
 	fmt.Println("[+] > All AddOns seems to be in good state!")
 	fmt.Scanln()
 }
 
+func min(x, y int) int {
+	if x > y {
+		return x
+	}
+	return y
+}
+
 func fixReadOnly(dir string) {
-	objs, _ := filepathx.Glob(dir + "/**/*")
-	for _, obj := range objs {
-		err := os.Chmod(obj, 0666) // fixing read-only permissions for AddOns
-		if err != nil {
-			fmt.Println("[!] > Can't fix permissions for \"" + obj + "\"")
+	err := os.Chmod(dir, 0666)
+	if err != nil {
+		fmt.Println("[!] > Can't fix permissions for \"" + dir + "\"")
+	}
+}
+
+func fixReadOnlyGlob(jobs <-chan string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for dir := range jobs {
+		fixReadOnly(dir)
+		files, _ := filepathx.Glob(dir + "/**/*")
+		for _, obj := range files {
+			err := os.Chmod(obj, 0666)
+			if err != nil {
+				fmt.Println("[!] > Can't fix permissions for \"" + obj + "\"")
+			}
 		}
 	}
 }
@@ -87,8 +117,8 @@ func processAddOnFolder(jobs <-chan string, wg *sync.WaitGroup) {
 					continue OUTER // it's a library, need to skip
 				}
 			}
-			cpdir := filepath.Dir(file)                                          // correct path to AddOn inside broken directory
-			cndir := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file)) // correct name of AddOn
+			cpdir := filepath.Dir(file)
+			cndir := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 			tocs[filepath.Base(cpdir)] = true
 			fmt.Println("[!] > AddOn \"" + strings.Replace(cpdir, "_forfix", "", -1) + "\" is broken, trying to fix it..")
 			err := os.Rename(cpdir, "./Interface/AddOns/"+cndir)
