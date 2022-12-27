@@ -2,7 +2,7 @@
 ### _Fixes incorrectly unpacked addOns for you, quickly_
 
 - Fixes read-only permissions for addOns
-- Finds broken addOns and fixes it
+- Finds broken addOns and fixes them
 - ✨Magic ✨
 
 ## Summary
