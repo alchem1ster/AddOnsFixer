@@ -1,0 +1,5 @@
+local f = CreateFrame("Frame")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+  DEFAULT_CHAT_FRAME:AddMessage("This is addon3, I loaded successfully and am ready to go!")
+end)

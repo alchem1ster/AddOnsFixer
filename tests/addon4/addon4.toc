@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: addon4
+## Notes: This is addon4 from tests for AddOnsFixer
+## Author: alchem1ster
+
+main.lua

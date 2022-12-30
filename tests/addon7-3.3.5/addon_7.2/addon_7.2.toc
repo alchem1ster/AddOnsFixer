@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: addon_7.2
+## Notes: This is addon_7.2 from tests for AddOnsFixer
+## Author: alchem1ster
+
+main.lua

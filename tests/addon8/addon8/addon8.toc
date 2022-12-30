@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: addon8
+## Notes: This is addon8 from tests for AddOnsFixer
+## Author: alchem1ster
+
+main.lua
