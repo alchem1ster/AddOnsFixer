@@ -64,9 +64,9 @@ func main() {
 
 func min(x, y int) int {
 	if x > y {
-		return x
+		return y
 	}
-	return y
+	return x
 }
 
 func fixReadOnly(dir string) {
